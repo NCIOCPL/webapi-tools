@@ -97,7 +97,7 @@ function CreateSite() {
 	$appAppPool = $site_name + "-" + $app_version;
 	$appIISAppPool = "IIS:\AppPools\" + $appAppPool;
 	$appIISPath = $siteIISPath + "\" + $app_name + "\" + $app_version;
-	$appVD = $app_name + "\" + $app_version;
+	$appVD = $app_name + "/" + $app_version;
 
 	## Create application pool for website
 	if((Test-Path $siteIISAppPool) -eq 0)
