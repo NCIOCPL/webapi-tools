@@ -1,4 +1,38 @@
-param([string]$site_name = "", [string]$app_name = "", [string]$app_version = "", [string]$site_hostname = "");
+<#
+	.SYNOPSIS
+	Creates the file system folder structure along with IIS website and application for the given API.
+	.DESCRIPTION
+	Creates the file system folder structure for an API.
+	Creates the IIS website for the API.
+	Creates the application for the specified version of the API.
+	.PARAMETER site_name
+	The site name for the API. Required.
+	.PARAMETER app_name
+	The application name for the API. Required.
+	.PARAMETER app_version
+	The version of the API for the application. Required.
+	.PARAMETER site_hostname
+	The hostname of te API website. Required.
+	.PARAMETER code_folder
+	The folder from which to copy the latest code. Required.
+#>
+
+Param(
+	[Parameter(mandatory=$true)]
+	[string]$site_name = "",
+	
+	[Parameter(mandatory=$true)]
+	[string]$app_name = "",
+	
+	[Parameter(mandatory=$true)]
+	[string]$app_version = "", 
+	
+	[Parameter(mandatory=$true)]
+	[string]$site_hostname = "",
+	
+	[Parameter(mandatory=$true)]
+	[string]$code_folder = ""
+);
 
 function Main() {
 	## The WebAdministration module requires elevated privileges.
@@ -18,9 +52,22 @@ function Is-Admin {
 }
 
 function CreateSite() {
+	## Check parameters
 	if ($site_name -eq "")
 	{
 		Write-Host -foregroundcolor 'red' "ERROR: Site Name must not be null.";
+		exit;
+	}
+
+	if ($app_name -eq "")
+	{
+		Write-Host -foregroundcolor 'red' "ERROR: App Name must not be null.";
+		exit;
+	}
+
+	if ($app_version -eq "")
+	{
+		Write-Host -foregroundcolor 'red' "ERROR: App Version must not be null.";
 		exit;
 	}
 
@@ -30,10 +77,13 @@ function CreateSite() {
 		exit;
 	}
 
-	$fileLoc = "D:\WCMS_Code_Folder\";
+	if ($code_folder -eq "")
+	{
+		Write-Host -foregroundcolor 'red' "ERROR: Code Folder must not be null.";
+		exit;
+	}
 
-	$versionCodeFolder = $fileLoc + $site_name + "\" + $app_version;
-
+	## Set up folder names for file system folder structure
 	$contentRoot = "D:\Content";
 	$sitesRoot = "D:\Content\APISites";
 	$sitePath = $sitesRoot + "\" + $site_name;
@@ -68,23 +118,41 @@ function CreateSite() {
 	{
 		Write-Host "WARNING: The ${app_version} folder path ${versionAppPath} already exists. Skipping creation.";
 
-		Write-Host "INFO: Copying files from ${versionCodeFolder} to ${versionAppPath}.";
-		Get-ChildItem $versionCodeFolder | Copy-Item -Destination $versionAppPath -force;
+		if(!(Test-Path $code_folder))
+		{
+			Write-Host -foregroundcolor 'red' "ERROR: Code folder ${code_folder} does not exist.";
+			Exit;
+		}
+		else
+		{
+			Write-Host "INFO: Copying files from ${code_folder} to ${versionAppPath}.";
+			
+			## Clear contents of version folder (in case there are extraneous files from an old build)
+			Get-ChildItem $versionAppPath -Recurse | Foreach-Object {Remove-Item -Recurse -path $_.FullName }
+
+			## Copy files
+			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force;
+		}
 	}
 	else
 	{
 		Write-Host "INFO: Creating folder ${versionAppPath}.";
 		New-Item -ItemType directory -Path $versionAppPath;
 		
-		if (!(Test-Path($versionCodeFolder)))
+		if (!(Test-Path($code_folder)))
 		{
-			Write-Host -foregroundcolor 'red' "ERROR: ${app_version} code folder ${versionCodeFolder} does not exist.";
+			Write-Host -foregroundcolor 'red' "ERROR: Code folder ${code_folder} does not exist.";
 			Exit;
 		}
 		else
 		{
-			Write-Host "INFO: Copying files from ${versionCodeFolder} to ${versionAppPath}.";
-			Get-ChildItem $versionCodeFolder | Copy-Item -Destination $versionAppPath;
+			Write-Host "INFO: Copying files from ${code_folder} to ${versionAppPath}.";
+			
+			## Clear contents of version folder (in case there are extraneous files from an old build)
+			Get-ChildItem $versionAppPath -Recurse | Foreach-Object {Remove-Item -Recurse -path $_.FullName }
+
+			## Copy files
+			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force;
 		}
 	}
 
