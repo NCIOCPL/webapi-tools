@@ -112,6 +112,12 @@ function CreateSite() {
 			New-Item -ItemType directory -Path $folder;     
 		}
 	}
+
+	## Stop web site so updated files can be copied.
+	$webSiteExists = (Get-WebSite -Name $site_name) -eq $null
+	if( $webSiteExists -eq $true ){
+		Stop-Website -Name $site_name
+	}
 	
 	## Make version directory and copy files
 	if (Test-Path $versionAppPath)
@@ -154,6 +160,11 @@ function CreateSite() {
 			## Copy files
 			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force;
 		}
+	}
+
+	## Restart web site.
+	if( $webSiteExists -eq $true ){
+		Start-Website -Name $site_name
 	}
 
 	###### Setup Web Site ######
