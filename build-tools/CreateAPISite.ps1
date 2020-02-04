@@ -34,6 +34,11 @@ Param(
 	[string]$code_folder = ""
 );
 
+## Named constants
+New-Variable -Name "CONTENT_ROOT" -Value "D:\Content"			-Option Constant;
+New-Variable -Name "SITES_ROOT"   -Value "D:\Content\APISites"	-Option Constant;
+New-Variable -Name "BACKUP_ROOT"  -Value "D:\backups"			-Option Constant;
+
 function Main() {
 	## The WebAdministration module requires elevated privileges.
 	$isAdmin = Is-Admin;
@@ -84,9 +89,7 @@ function CreateSite() {
 	}
 
 	## Set up folder names for file system folder structure
-	$contentRoot = "D:\Content";
-	$sitesRoot = "D:\Content\APISites";
-	$sitePath = $sitesRoot + "\" + $site_name;
+	$sitePath = $SITES_ROOT + "\" + $site_name;
 	$sitePhysicalPath = $sitePath + "\root";
 	$appPath = $sitePath + "\" + $app_name;
 	$versionAppPath = $sitePath + "\" + $app_version;
@@ -94,8 +97,8 @@ function CreateSite() {
 	## Make site directories
 	## Should check non-existence first
 	foreach ( $folder in (
-			$contentRoot,
-			$sitesRoot,
+			$CONTENT_ROOT,
+			$SITES_ROOT,
 			$sitePath,
 			$sitePhysicalPath,
 			$appPath
@@ -114,10 +117,14 @@ function CreateSite() {
 	}
 
 	## Stop web site so updated files can be copied.
-	$webSiteExists = (Get-WebSite -Name $site_name) -eq $null
+	$webSiteExists = (Get-WebSite -Name $site_name) -ne $null
 	if( $webSiteExists -eq $true ){
 		Stop-Website -Name $site_name
 	}
+	else {
+		write-host "*********** False *************";
+	}
+
 	
 	## Make version directory and copy files
 	if (Test-Path $versionAppPath)
@@ -131,6 +138,9 @@ function CreateSite() {
 		}
 		else
 		{
+		    # Create a backup before overwriting existing files.
+			BackupFiles $site_name $versionAppPath;
+		
 			Write-Host "INFO: Copying files from ${code_folder} to ${versionAppPath}.";
 			
 			## Clear contents of version folder (in case there are extraneous files from an old build)
@@ -230,6 +240,15 @@ function CreateSite() {
 	{
 		Write-Host "WARNING: Application ${appVD} already exists. Skipping creation.";
 	}
+}
+
+function BackupFiles($siteName, $sitePath) {
+	$datestring = Get-Date -Format "yyyy-MM-dd-HH-mm_s";
+	$backupLocation = $BACKUP_ROOT + "\" + $siteName + "\" + $datestring;
+	Write-Host "INFO: Backing up to" $backupLocation;
+
+	New-Item -ItemType directory -Path $backupLocation
+	Get-ChildItem $sitePath | Copy-Item -Destination $backupLocation -force;
 }
 
 Main;
