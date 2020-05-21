@@ -20,16 +20,16 @@
 Param(
 	[Parameter(mandatory=$true)]
 	[string]$site_name = "",
-	
+
 	[Parameter(mandatory=$true)]
 	[string]$app_name = "",
-	
+
 	[Parameter(mandatory=$true)]
-	[string]$app_version = "", 
-	
+	[string]$app_version = "",
+
 	[Parameter(mandatory=$true)]
 	[string]$site_hostname = "",
-	
+
 	[Parameter(mandatory=$true)]
 	[string]$code_folder = ""
 );
@@ -112,7 +112,7 @@ function CreateSite() {
 		else
 		{
 			Write-Host "INFO: Creating folder ${folder}.";
-			New-Item -ItemType directory -Path $folder;     
+			New-Item -ItemType directory -Path $folder;
 		}
 	}
 
@@ -125,7 +125,7 @@ function CreateSite() {
 		write-host "*********** False *************";
 	}
 
-	
+
 	## Make version directory and copy files
 	if (Test-Path $versionAppPath)
 	{
@@ -140,21 +140,21 @@ function CreateSite() {
 		{
 		    # Create a backup before overwriting existing files.
 			BackupFiles $site_name $versionAppPath;
-		
+
 			Write-Host "INFO: Copying files from ${code_folder} to ${versionAppPath}.";
-			
+
 			## Clear contents of version folder (in case there are extraneous files from an old build)
 			Get-ChildItem $versionAppPath -Recurse | Foreach-Object {Remove-Item -Recurse -path $_.FullName }
 
 			## Copy files
-			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force;
+			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force -Recurse
 		}
 	}
 	else
 	{
 		Write-Host "INFO: Creating folder ${versionAppPath}.";
 		New-Item -ItemType directory -Path $versionAppPath;
-		
+
 		if (!(Test-Path($code_folder)))
 		{
 			Write-Host -foregroundcolor 'red' "ERROR: Code folder ${code_folder} does not exist.";
@@ -163,12 +163,12 @@ function CreateSite() {
 		else
 		{
 			Write-Host "INFO: Copying files from ${code_folder} to ${versionAppPath}.";
-			
+
 			## Clear contents of version folder (in case there are extraneous files from an old build)
 			Get-ChildItem $versionAppPath -Recurse | Foreach-Object {Remove-Item -Recurse -path $_.FullName }
 
 			## Copy files
-			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force;
+			Get-ChildItem $code_folder | Copy-Item -Destination $versionAppPath -force -Recurse;
 		}
 	}
 
@@ -221,7 +221,7 @@ function CreateSite() {
 	{
 		Write-Host "WARNING: Website ${site_name} already exists. Skipping creation.";
 	}
-	
+
 	## If web application for version doesn't already exist, create it
 	if((Get-WebVirtualDirectory -Site $site_name -Name $app_name) -eq $null)
 	{
@@ -231,7 +231,7 @@ function CreateSite() {
 	{
 		Write-Host "WARNING: Virtual directory ${app_name} already exists. Skipping creation.";
 	}
-	
+
 	if((Get-WebApplication -Site $site_name -Name $appVD) -eq $null)
 	{
 		New-WebApplication -Name $appVD -Site $site_name -PhysicalPath $versionAppPath -ApplicationPool $appAppPool;
